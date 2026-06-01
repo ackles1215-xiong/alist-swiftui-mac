@@ -7,8 +7,12 @@ A native SwiftUI macOS wrapper for running a local AList service.
 - Start and stop a local `alist` binary.
 - Configure binary path, data directory, and HTTP port.
 - Open the local AList admin UI in the default browser.
+- Load the local AList admin UI inside an embedded WebKit view.
 - Show service state in the main window and menu bar.
+- Show basic Admin health state.
+- Auto-detect likely local AList binary locations.
 - Capture stdout/stderr logs from the AList process.
+- Parse AList Desktop GitHub release metadata for later update/download work.
 
 ## Requirements
 
@@ -34,7 +38,13 @@ swift test
 swift run AListSwiftUIMac
 ```
 
-On first launch, set the AList binary path if `/usr/local/bin/alist` does not exist.
+On first launch, use the auto-detect button next to the binary path, or set the AList binary path manually if no local binary is found.
+
+## Phase 1 Limitations
+
+- The app checks release metadata shape in core code, but does not yet download or replace binaries from the UI.
+- The embedded Admin view points at the configured local URL. Start AList before expecting the WebView to load.
+- The app is not yet packaged, signed, notarized, or configured as a LaunchAgent.
 
 ## Upstream References
 

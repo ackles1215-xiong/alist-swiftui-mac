@@ -16,7 +16,7 @@ public struct AListConfiguration: Codable, Equatable, Sendable {
     }
 
     public static func `default`(homeDirectory: URL = FileManager.default.homeDirectoryForCurrentUser) -> AListConfiguration {
-        let fallbackBinary = URL(fileURLWithPath: "/usr/local/bin/alist")
+        let fallbackBinary = BinaryDiscovery().discover() ?? URL(fileURLWithPath: "/usr/local/bin/alist")
         let dataDirectory = homeDirectory.appendingPathComponent(".alist", isDirectory: true)
         return try! AListConfiguration(
             binaryURL: fallbackBinary,

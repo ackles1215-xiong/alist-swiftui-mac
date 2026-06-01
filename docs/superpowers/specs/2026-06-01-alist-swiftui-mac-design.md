@@ -15,13 +15,16 @@ The MVP includes:
 - Log capture from standard output and standard error.
 - Open local admin URL in the default browser.
 - Basic service health state shown in the app.
+- Embedded WebKit view for the local AList admin UI.
+- Automatic local binary discovery from bundled and common install paths.
+- GitHub desktop release metadata parsing for future update/download flow.
 
 The MVP does not include:
 
 - Reimplementing AList's web file manager in SwiftUI.
 - Editing AList storage drivers natively.
 - Shipping a signed/notarized `.app` package.
-- Automatic binary download or update.
+- Automatic binary download or update from the UI.
 
 ## Architecture
 
@@ -35,11 +38,13 @@ The project is a Swift Package with two targets:
 ## Data Flow
 
 1. `SettingsStore` loads `AListConfiguration` from `UserDefaults`.
-2. The SwiftUI app creates a shared `AListServiceController`.
-3. Start builds an `AListLaunchConfiguration` from the current configuration.
-4. The process launcher starts `alist server --data <dataDirectory>` and supplies `ALIST_ADDR` plus `ALIST_HTTP_PORT`.
-5. Output streams append lines into `LogStore`.
-6. UI observes service state and logs, then updates controls.
+2. `BinaryDiscovery` suggests a local `alist` binary from bundled and common install paths.
+3. The SwiftUI app creates a shared `AListServiceController`.
+4. Start builds an `AListLaunchConfiguration` from the current configuration.
+5. The process launcher starts `alist server --data <dataDirectory>` and supplies `ALIST_ADDR` plus `ALIST_HTTP_PORT`.
+6. Output streams append lines into `LogStore`.
+7. `HTTPHealthChecker` probes the admin URL while the service is running.
+8. UI observes service state, health, and logs, then updates controls.
 
 ## UI
 
@@ -49,6 +54,7 @@ The MVP uses a restrained macOS utility layout:
 - Primary controls for start, stop, and open admin.
 - Settings form for binary path, data directory, and port.
 - Log panel with monospace output.
+- Embedded admin panel backed by `WKWebView`.
 - Menu bar extra with start/stop/open/quit commands.
 
 The design follows `/Users/ackles/.codex/DESIGN.md` where applicable: dark utility surfaces, dense information, clear hairline separation, and minimal decorative styling.
@@ -70,6 +76,9 @@ Core behavior is tested in `AListCoreTests`:
 - Command builder emits the expected executable URL, arguments, and working directory.
 - Log store keeps recent entries in insertion order.
 - Service controller moves between stopped, running, and stopped using a fake launcher.
+- Binary discovery chooses the first executable candidate.
+- Desktop release metadata selects the matching macOS app archive.
+- Health checker maps HTTP status and connection failures to UI health states.
 
 SwiftUI rendering is verified by building the executable target. Manual app behavior can be checked with `swift run AListSwiftUIMac`.
 

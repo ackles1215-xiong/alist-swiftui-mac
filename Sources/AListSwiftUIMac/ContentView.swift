@@ -12,6 +12,8 @@ struct ContentView: View {
                         .font(.system(size: 30, weight: .semibold))
 
                     StatusBadge(state: model.state)
+                    Label(healthTitle, systemImage: healthImage)
+                        .foregroundStyle(healthColor)
                 }
 
                 VStack(alignment: .leading, spacing: 8) {
@@ -46,6 +48,12 @@ struct ContentView: View {
                     } label: {
                         Label("Open Admin", systemImage: "safari")
                     }
+
+                    Button {
+                        model.selectedSection = .admin
+                    } label: {
+                        Label("Show Embedded", systemImage: "macwindow")
+                    }
                 }
                 .controlSize(.large)
             }
@@ -53,16 +61,32 @@ struct ContentView: View {
             .frame(minWidth: 240, alignment: .leading)
         } detail: {
             VStack(spacing: 0) {
-                settingsSection
+                Picker("Section", selection: $model.selectedSection) {
+                    ForEach(AppModel.DetailSection.allCases) { section in
+                        Text(section.rawValue).tag(section)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .padding([.horizontal, .top], 24)
 
-                Divider()
-
-                logsSection
+                switch model.selectedSection {
+                case .control:
+                    settingsSection
+                case .admin:
+                    adminSection
+                case .logs:
+                    logsSection
+                }
             }
             .background(Color(nsColor: .windowBackgroundColor))
         }
         .onReceive(Timer.publish(every: 1.0, on: .main, in: .common).autoconnect()) { _ in
             model.refresh()
+            if model.state == .running {
+                model.updateHealth()
+            } else {
+                model.resetHealth()
+            }
         }
     }
 
@@ -85,6 +109,12 @@ struct ContentView: View {
                         .foregroundStyle(.secondary)
                     TextField("Path to alist", text: $model.binaryPath)
                         .textFieldStyle(.roundedBorder)
+                    Button {
+                        model.autoDetectBinary()
+                    } label: {
+                        Image(systemName: "scope")
+                    }
+                    .help("Auto-detect AList binary")
                     Button {
                         model.chooseBinary()
                     } label: {
@@ -115,6 +145,25 @@ struct ContentView: View {
                     Spacer()
                 }
             }
+        }
+        .padding(24)
+    }
+
+    private var adminSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text("Embedded Admin")
+                    .font(.title2.weight(.semibold))
+                Spacer()
+                Button {
+                    model.openAdmin()
+                } label: {
+                    Label("Open in Browser", systemImage: "safari")
+                }
+            }
+
+            WebAdminView(url: model.adminURL)
+                .clipShape(RoundedRectangle(cornerRadius: 8))
         }
         .padding(24)
     }
@@ -152,5 +201,38 @@ struct ContentView: View {
             .clipShape(RoundedRectangle(cornerRadius: 8))
         }
         .padding(24)
+    }
+
+    private var healthTitle: String {
+        switch model.healthStatus {
+        case .unknown:
+            "Health unknown"
+        case .online:
+            "Admin online"
+        case .offline:
+            "Admin offline"
+        }
+    }
+
+    private var healthImage: String {
+        switch model.healthStatus {
+        case .unknown:
+            "questionmark.circle"
+        case .online:
+            "network"
+        case .offline:
+            "wifi.exclamationmark"
+        }
+    }
+
+    private var healthColor: Color {
+        switch model.healthStatus {
+        case .unknown:
+            .secondary
+        case .online:
+            .green
+        case .offline:
+            .orange
+        }
     }
 }

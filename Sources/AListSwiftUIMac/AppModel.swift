@@ -4,22 +4,35 @@ import Foundation
 
 @MainActor
 final class AppModel: ObservableObject {
+    enum DetailSection: String, CaseIterable, Identifiable {
+        case control = "Control"
+        case admin = "Admin"
+        case logs = "Logs"
+
+        var id: String { rawValue }
+    }
+
     @Published private(set) var state: AListServiceState = .stopped
+    @Published private(set) var healthStatus: HealthStatus = .unknown
     @Published private(set) var logs: [LogStore.Entry] = []
     @Published var binaryPath: String
     @Published var dataDirectoryPath: String
     @Published var portText: String
     @Published var errorMessage: String?
+    @Published var selectedSection: DetailSection = .control
 
     private let settingsStore: SettingsStore
     private let service: AListServiceController
+    private let healthChecker: any HealthChecking
 
     init(
         settingsStore: SettingsStore = SettingsStore(),
-        service: AListServiceController = AListServiceController()
+        service: AListServiceController = AListServiceController(),
+        healthChecker: any HealthChecking = HTTPHealthChecker()
     ) {
         self.settingsStore = settingsStore
         self.service = service
+        self.healthChecker = healthChecker
 
         let configuration = (try? settingsStore.load()) ?? .default()
         binaryPath = configuration.binaryURL.path
@@ -27,6 +40,10 @@ final class AppModel: ObservableObject {
         portText = String(configuration.port)
         state = service.state
         logs = service.logEntries
+    }
+
+    var adminURL: URL? {
+        try? currentConfiguration().adminURL
     }
 
     var adminURLText: String {
@@ -43,6 +60,7 @@ final class AppModel: ObservableObject {
             try settingsStore.save(configuration)
             try service.start(configuration: configuration)
             errorMessage = nil
+            selectedSection = .admin
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -92,6 +110,35 @@ final class AppModel: ObservableObject {
     func clearLogs() {
         service.clearLogs()
         refresh()
+    }
+
+    func autoDetectBinary() {
+        guard let url = BinaryDiscovery().discover() else {
+            errorMessage = "No executable AList binary was found."
+            return
+        }
+
+        binaryPath = url.path
+        errorMessage = nil
+    }
+
+    func updateHealth() {
+        guard let url = adminURL else {
+            healthStatus = .unknown
+            return
+        }
+
+        let healthChecker = healthChecker
+        Task {
+            let status = await healthChecker.check(url: url)
+            await MainActor.run {
+                self.healthStatus = status
+            }
+        }
+    }
+
+    func resetHealth() {
+        healthStatus = .unknown
     }
 
     func refresh() {

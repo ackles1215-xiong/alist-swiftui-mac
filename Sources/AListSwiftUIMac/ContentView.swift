@@ -1,0 +1,156 @@
+import AListCore
+import SwiftUI
+
+struct ContentView: View {
+    @ObservedObject var model: AppModel
+
+    var body: some View {
+        NavigationSplitView {
+            VStack(alignment: .leading, spacing: 20) {
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("AList")
+                        .font(.system(size: 30, weight: .semibold))
+
+                    StatusBadge(state: model.state)
+                }
+
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Admin")
+                        .font(.headline)
+                    Text(model.adminURLText)
+                        .font(.system(.body, design: .monospaced))
+                        .foregroundStyle(.secondary)
+                        .textSelection(.enabled)
+                }
+
+                Spacer()
+
+                VStack(alignment: .leading, spacing: 8) {
+                    Button {
+                        model.start()
+                    } label: {
+                        Label("Start", systemImage: "play.fill")
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(model.state == .running)
+
+                    Button {
+                        model.stop()
+                    } label: {
+                        Label("Stop", systemImage: "stop.fill")
+                    }
+                    .disabled(model.state == .stopped)
+
+                    Button {
+                        model.openAdmin()
+                    } label: {
+                        Label("Open Admin", systemImage: "safari")
+                    }
+                }
+                .controlSize(.large)
+            }
+            .padding(24)
+            .frame(minWidth: 240, alignment: .leading)
+        } detail: {
+            VStack(spacing: 0) {
+                settingsSection
+
+                Divider()
+
+                logsSection
+            }
+            .background(Color(nsColor: .windowBackgroundColor))
+        }
+        .onReceive(Timer.publish(every: 1.0, on: .main, in: .common).autoconnect()) { _ in
+            model.refresh()
+        }
+    }
+
+    private var settingsSection: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            HStack {
+                Text("Service Settings")
+                    .font(.title2.weight(.semibold))
+                Spacer()
+                if let errorMessage = model.errorMessage {
+                    Text(errorMessage)
+                        .foregroundStyle(.red)
+                        .lineLimit(2)
+                }
+            }
+
+            Grid(alignment: .leading, horizontalSpacing: 12, verticalSpacing: 12) {
+                GridRow {
+                    Text("Binary")
+                        .foregroundStyle(.secondary)
+                    TextField("Path to alist", text: $model.binaryPath)
+                        .textFieldStyle(.roundedBorder)
+                    Button {
+                        model.chooseBinary()
+                    } label: {
+                        Image(systemName: "folder")
+                    }
+                    .help("Choose AList binary")
+                }
+
+                GridRow {
+                    Text("Data")
+                        .foregroundStyle(.secondary)
+                    TextField("AList data directory", text: $model.dataDirectoryPath)
+                        .textFieldStyle(.roundedBorder)
+                    Button {
+                        model.chooseDataDirectory()
+                    } label: {
+                        Image(systemName: "folder")
+                    }
+                    .help("Choose data directory")
+                }
+
+                GridRow {
+                    Text("Port")
+                        .foregroundStyle(.secondary)
+                    TextField("5244", text: $model.portText)
+                        .textFieldStyle(.roundedBorder)
+                        .frame(maxWidth: 140)
+                    Spacer()
+                }
+            }
+        }
+        .padding(24)
+    }
+
+    private var logsSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text("Logs")
+                    .font(.title2.weight(.semibold))
+                Spacer()
+                Button {
+                    model.clearLogs()
+                } label: {
+                    Label("Clear", systemImage: "trash")
+                }
+            }
+
+            ScrollView {
+                LazyVStack(alignment: .leading, spacing: 6) {
+                    if model.logs.isEmpty {
+                        Text("No logs yet.")
+                            .foregroundStyle(.secondary)
+                    } else {
+                        ForEach(model.logs) { entry in
+                            Text(entry.message)
+                                .font(.system(.caption, design: .monospaced))
+                                .textSelection(.enabled)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+                    }
+                }
+                .padding(12)
+            }
+            .background(Color(nsColor: .textBackgroundColor))
+            .clipShape(RoundedRectangle(cornerRadius: 8))
+        }
+        .padding(24)
+    }
+}

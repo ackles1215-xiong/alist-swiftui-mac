@@ -76,6 +76,8 @@ struct ContentView: View {
                     adminSection
                 case .logs:
                     logsSection
+                case .webdav:
+                    webDAVSection
                 }
             }
             .background(Color(nsColor: .windowBackgroundColor))
@@ -199,6 +201,72 @@ struct ContentView: View {
             }
             .background(Color(nsColor: .textBackgroundColor))
             .clipShape(RoundedRectangle(cornerRadius: 8))
+        }
+        .padding(24)
+    }
+
+    private var webDAVSection: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            HStack {
+                Text("Infuse WebDAV")
+                    .font(.title2.weight(.semibold))
+                Spacer()
+                Button {
+                    model.copyToClipboard(model.infuseConnectionSummary)
+                } label: {
+                    Label("Copy All", systemImage: "doc.on.doc")
+                }
+            }
+
+            VStack(alignment: .leading, spacing: 12) {
+                Group {
+                    LabeledContent("Server") {
+                        Text(model.webDAVURLText)
+                            .font(.system(.body, design: .monospaced))
+                            .textSelection(.enabled)
+                    }
+                    LabeledContent("Username") {
+                        TextField("Infuse username", text: $model.webDAVUsername)
+                            .textFieldStyle(.roundedBorder)
+                            .frame(maxWidth: 240)
+                    }
+                    LabeledContent("Password") {
+                        SecureField("Infuse password", text: $model.webDAVPassword)
+                            .textFieldStyle(.roundedBorder)
+                            .frame(maxWidth: 240)
+                    }
+                }
+                .labelsHidden()
+
+                HStack(spacing: 12) {
+                    Button {
+                        model.copyToClipboard(model.webDAVURLText)
+                    } label: {
+                        Label("Copy URL", systemImage: "link")
+                    }
+
+                    Button {
+                        model.copyToClipboard(model.webDAVUsername)
+                    } label: {
+                        Label("Copy Username", systemImage: "person")
+                    }
+
+                    Button {
+                        model.copyToClipboard(model.webDAVPassword)
+                    } label: {
+                        Label("Copy Password", systemImage: "key")
+                    }
+
+                    Button {
+                        try? model.saveWebDAVProfile()
+                    } label: {
+                        Label("Save", systemImage: "square.and.arrow.down")
+                    }
+                }
+            }
+
+            Text("Use the server URL, username, and password directly in Infuse. The path is always `/dav/` on the current AList port.")
+                .foregroundStyle(.secondary)
         }
         .padding(24)
     }

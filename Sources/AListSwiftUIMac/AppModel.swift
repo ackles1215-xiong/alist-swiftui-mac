@@ -8,6 +8,7 @@ final class AppModel: ObservableObject {
         case control = "Control"
         case admin = "Admin"
         case logs = "Logs"
+        case webdav = "WebDAV"
 
         var id: String { rawValue }
     }
@@ -18,6 +19,8 @@ final class AppModel: ObservableObject {
     @Published var binaryPath: String
     @Published var dataDirectoryPath: String
     @Published var portText: String
+    @Published var webDAVUsername: String
+    @Published var webDAVPassword: String
     @Published var errorMessage: String?
     @Published var selectedSection: DetailSection = .control
 
@@ -35,9 +38,12 @@ final class AppModel: ObservableObject {
         self.healthChecker = healthChecker
 
         let configuration = (try? settingsStore.load()) ?? .default()
+        let webDAVProfile = (try? settingsStore.loadWebDAVProfile()) ?? AListWebDAVProfile()
         binaryPath = configuration.binaryURL.path
         dataDirectoryPath = configuration.dataDirectory.path
         portText = String(configuration.port)
+        webDAVUsername = webDAVProfile.username
+        webDAVPassword = webDAVProfile.password
         state = service.state
         logs = service.logEntries
     }
@@ -54,10 +60,27 @@ final class AppModel: ObservableObject {
         return configuration.adminURL.absoluteString
     }
 
+    var webDAVURLText: String {
+        guard let configuration = try? currentConfiguration() else {
+            return "Invalid configuration"
+        }
+
+        return configuration.webDAVURL.absoluteString
+    }
+
+    var infuseConnectionSummary: String {
+        """
+        Server: \(webDAVURLText)
+        Username: \(webDAVUsername)
+        Password: \(webDAVPassword)
+        """
+    }
+
     func start() {
         do {
             let configuration = try currentConfiguration()
             try settingsStore.save(configuration)
+            try saveWebDAVProfile()
             try service.start(configuration: configuration)
             errorMessage = nil
             selectedSection = .admin
@@ -110,6 +133,16 @@ final class AppModel: ObservableObject {
     func clearLogs() {
         service.clearLogs()
         refresh()
+    }
+
+    func saveWebDAVProfile() throws {
+        try settingsStore.save(AListWebDAVProfile(username: webDAVUsername, password: webDAVPassword))
+    }
+
+    func copyToClipboard(_ text: String) {
+        let pasteboard = NSPasteboard.general
+        pasteboard.clearContents()
+        pasteboard.setString(text, forType: .string)
     }
 
     func autoDetectBinary() {

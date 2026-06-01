@@ -9,6 +9,7 @@ final class AListCoreTests: XCTestCase {
 
         XCTAssertEqual(configuration.port, 5244)
         XCTAssertEqual(configuration.adminURL.absoluteString, "http://127.0.0.1:5244")
+        XCTAssertEqual(configuration.webDAVURL.absoluteString, "http://127.0.0.1:5244/dav/")
         XCTAssertEqual(configuration.dataDirectory.path, "/Users/tester/.alist")
     }
 
@@ -93,6 +94,21 @@ final class AListCoreTests: XCTestCase {
         try store.save(configuration)
 
         XCTAssertEqual(try store.load(), configuration)
+    }
+
+    func testSettingsStoreSavesAndLoadsWebDAVProfile() throws {
+        let suiteName = "AListCoreTests.\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
+        defer {
+            defaults.removePersistentDomain(forName: suiteName)
+        }
+
+        let store = SettingsStore(defaults: defaults)
+        let profile = AListWebDAVProfile(username: "infuse", password: "secret")
+
+        try store.save(profile)
+
+        XCTAssertEqual(try store.loadWebDAVProfile(), profile)
     }
 
     func testBinaryDiscoveryChoosesFirstExistingExecutable() {

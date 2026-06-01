@@ -11,6 +11,7 @@ A native SwiftUI macOS wrapper for running a local AList service.
 - Show service state in the main window and menu bar.
 - Show basic Admin health state.
 - Auto-detect likely local AList binary locations.
+- Provide an Infuse-friendly WebDAV setup page with copy buttons.
 - Capture stdout/stderr logs from the AList process.
 - Parse AList Desktop GitHub release metadata for later update/download work.
 
